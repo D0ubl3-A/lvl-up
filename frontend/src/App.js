@@ -163,10 +163,7 @@ function LoginPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const success = await login(bigoId, password);
-    if (success) {
-      window.location.href = '/dashboard';
-    }
+    await login(bigoId, password);
   };
 
   return (
