@@ -608,16 +608,61 @@ Keep it under 200 words and professional but exciting."""
     except Exception as e:
         return f"Error creating email: {str(e)}"
 
-# Voice TTS/STT Integration (placeholder for Groq's upcoming TTS)
+# Voice TTS Integration with Groq
 async def generate_voice_response(text: str, voice_type: str = "strategy_coach"):
     try:
-        # For now, return the text - would integrate with Groq TTS when available
-        return {
-            "audio_url": None,  # Would contain generated audio URL
-            "text": text,
-            "voice_type": voice_type,
-            "duration_seconds": len(text) * 0.1  # Estimated
+        # Map voice types to actual Groq voices
+        voice_map = {
+            "strategy_coach": "Atlas-PlayAI",
+            "admin": "Fritz-PlayAI", 
+            "assistant": "Arista-PlayAI",
+            "default": "Celeste-PlayAI"
         }
+        
+        voice = voice_map.get(voice_type, "Celeste-PlayAI")
+        
+        import aiohttp
+        headers = {
+            'Authorization': f'Bearer {os.environ.get("GROQ_API_KEY", "")}',
+            'Content-Type': 'application/json'
+        }
+        payload = {
+            'model': 'playai-tts',
+            'voice': voice,
+            'input': text,
+            'response_format': 'wav'
+        }
+        
+        async with aiohttp.ClientSession() as session:
+            async with session.post('https://api.groq.com/openai/v1/audio/speech', 
+                                   headers=headers, json=payload) as r:
+                if r.status == 200:
+                    # Create audio directory if it doesn't exist
+                    import os
+                    os.makedirs("/app/static/audio", exist_ok=True)
+                    
+                    # Generate unique filename
+                    import uuid
+                    audio_id = str(uuid.uuid4())
+                    fpath = f"/app/static/audio/voice_{audio_id}.wav"
+                    
+                    # Save audio file
+                    data = await r.read()
+                    with open(fpath, 'wb') as f:
+                        f.write(data)
+                    
+                    # Return proper audio URL that can be accessed by frontend
+                    audio_url = f"/api/audio/voice_{audio_id}.wav"
+                    
+                    return {
+                        "audio_url": audio_url,
+                        "text": text,
+                        "voice_type": voice_type,
+                        "duration_seconds": len(text) * 0.1  # Estimated
+                    }
+                else:
+                    return {"error": f"TTS API error: {r.status}"}
+                    
     except Exception as e:
         return {"error": f"Voice generation failed: {str(e)}"}
 
