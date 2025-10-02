@@ -83,18 +83,165 @@ import RewardsPanel from './components/dashboard/RewardsPanel';
 import TasksPanel from './components/dashboard/TasksPanel';
 import UsersPanel from './components/dashboard/UsersPanel';
 
+// Add auth context
+const AuthContext = React.createContext();
+
+function AuthProvider({ children }) {
+  const [user, setUser] = useState(null);
+  const [token, setToken] = useState(localStorage.getItem('token'));
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (token) {
+      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      fetchMe();
+    } else {
+      setLoading(false);
+    }
+  }, [token]);
+
+  const fetchMe = async () => {
+    try {
+      const { data } = await axios.get(`${process.env.REACT_APP_BACKEND_URL}/api/auth/me`);
+      setUser(data);
+    } catch (e) {
+      logout();
+    }
+    setLoading(false);
+  };
+
+  const login = async (bigoId, password) => {
+    try {
+      const { data } = await axios.post(`${process.env.REACT_APP_BACKEND_URL}/api/auth/login`, { bigo_id: bigoId, password });
+      const { access_token, user: u } = data;
+      localStorage.setItem('token', access_token);
+      axios.defaults.headers.common['Authorization'] = `Bearer ${access_token}`;
+      setToken(access_token);
+      setUser(u);
+      toast('Welcome back!');
+      return true;
+    } catch (e) {
+      toast('Login failed');
+      return false;
+    }
+  };
+
+  const logout = () => {
+    localStorage.removeItem('token');
+    delete axios.defaults.headers.common['Authorization'];
+    setToken(null);
+    setUser(null);
+  };
+
+  return (
+    <AuthContext.Provider value={{ user, loading, login, logout }}>
+      {children}
+    </AuthContext.Provider>
+  );
+}
+
+function useAuth() {
+  const ctx = React.useContext(AuthContext);
+  if (!ctx) throw new Error('useAuth must be used within AuthProvider');
+  return ctx;
+}
+
+// Simple login component
+function LoginPage() {
+  const [bigoId, setBigoId] = useState('');
+  const [password, setPassword] = useState('');
+  const { login } = useAuth();
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    const success = await login(bigoId, password);
+    if (success) {
+      window.location.href = '/dashboard';
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <Card className="w-full max-w-md">
+        <CardHeader className="text-center">
+          <div className="mx-auto w-16 h-16 bg-gradient-to-r from-yellow-400 to-yellow-600 rounded-full flex items-center justify-center mb-4">
+            <Crown className="w-8 h-8 text-white" />
+          </div>
+          <CardTitle className="text-2xl">LVL-UP AGENCY</CardTitle>
+          <p className="text-gray-600">Elite BIGO Live Host Network</p>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">BIGO ID</label>
+              <Input 
+                type="text" 
+                value={bigoId} 
+                onChange={(e) => setBigoId(e.target.value)} 
+                placeholder="Enter your BIGO ID"
+                required 
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+              <Input 
+                type="password" 
+                value={password} 
+                onChange={(e) => setPassword(e.target.value)} 
+                placeholder="Enter your password"
+                required 
+              />
+            </div>
+            <Button type="submit" className="w-full bg-yellow-500 hover:bg-yellow-600">
+              Sign In
+            </Button>
+            <div className="text-center text-sm text-gray-600">
+              Demo: Admin / admin333
+            </div>
+          </form>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+// Protected route component
+function ProtectedRoute({ children }) {
+  const { user, loading } = useAuth();
+  
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div>Loading...</div>
+      </div>
+    );
+  }
+  
+  if (!user) {
+    return <LoginPage />;
+  }
+  
+  return children;
+}
+
 function App() {
   return (
-    <BrowserRouter>
-      <div className="App">
-        <Routes>
-          <Route path="/" element={<Navigate to="/dashboard" />} />
-          <Route path="/dashboard" element={<Dashboard />} />
-          {/* Add other routes as needed */}
-        </Routes>
-        <Toaster />
-      </div>
-    </BrowserRouter>
+    <AuthProvider>
+      <BrowserRouter>
+        <div className="App">
+          <Routes>
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/" element={<Navigate to="/dashboard" />} />
+            <Route path="/dashboard" element={
+              <ProtectedRoute>
+                <Dashboard />
+              </ProtectedRoute>
+            } />
+          </Routes>
+          <Toaster />
+        </div>
+      </BrowserRouter>
+    </AuthProvider>
   );
 }
 
