@@ -99,24 +99,135 @@ function App() {
 }
 
 function Dashboard() {
+  const [activeTab, setActiveTab] = useState('calendar');
+  const [user, setUser] = useState({ name: 'User', role: 'host' }); // Mock user data
+
+  // Define sidebar navigation items
+  const sidebarItems = [
+    { id: 'calendar', label: 'Calendar', icon: CalendarIcon, component: CalendarPanel },
+    { id: 'messages', label: 'Messages', icon: MessageSquare, component: MessagesPanel },
+    { id: 'academy', label: 'BIGO Academy', icon: BookOpen, component: AcademyPanel },
+    { id: 'tasks', label: 'Tasks', icon: Target, component: TasksPanel },
+    { id: 'rewards', label: 'Rewards', icon: Gift, component: RewardsPanel },
+    { id: 'auditions', label: 'Auditions', icon: Video, component: AuditionsPanel },
+    { id: 'announcements', label: 'Announcements', icon: Bell, component: AnnouncementsPanel },
+    { id: 'quota', label: 'Beans/Quota', icon: Calculator, component: QuotaPanel },
+    { id: 'pk', label: 'PK Sign-ups', icon: Trophy, component: PKPanel },
+    { id: 'ai-coach', label: 'AI Coach', icon: Bot, component: AICoachPanel },
+  ];
+
+  // Add admin-only items if user is admin
+  if (user.role === 'admin' || user.role === 'owner') {
+    sidebarItems.push(
+      { id: 'users', label: 'Users', icon: Users, component: UsersPanel },
+      { id: 'leads', label: 'Leads', icon: Users2, component: LeadsPanel },
+      { id: 'admin-agent', label: 'Admin Agent', icon: Command, component: AdminAgentPanel },
+      { id: 'content', label: 'Content Manager', icon: FileText, component: ContentManagerPanel }
+    );
+  }
+
+  const ActiveComponent = sidebarItems.find(item => item.id === activeTab)?.component || CalendarPanel;
+
   return (
-    <div className="container mx-auto p-4">
-      <h1 className="text-2xl font-bold mb-6">Dashboard</h1>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <AcademyPanel />
-        <AdminAgentPanel />
-        <AICoachPanel />
-        <AnnouncementsPanel />
-        <AuditionsPanel />
-        <CalendarPanel />
-        <ContentManagerPanel />
-        <LeadsPanel />
-        <MessagesPanel />
-        <PKPanel />
-        <QuotaPanel />
-        <RewardsPanel />
-        <TasksPanel />
-        <UsersPanel />
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <header className="bg-white border-b border-gray-200 px-6 py-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-4">
+            <div className="w-10 h-10 bg-gradient-to-r from-yellow-400 to-yellow-600 rounded-full flex items-center justify-center">
+              <Crown className="w-6 h-6 text-white" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">LVL-UP AGENCY</h1>
+              <p className="text-sm text-gray-500">Elite BIGO Live Host Network</p>
+            </div>
+          </div>
+          <div className="flex items-center space-x-4">
+            <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+              {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
+            </Badge>
+            <div className="text-right">
+              <p className="text-sm font-semibold text-gray-900">{user.name}</p>
+              <p className="text-xs text-gray-500">Welcome back!</p>
+            </div>
+            <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center">
+              <Settings className="w-4 h-4 text-gray-600" />
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <div className="flex">
+        {/* Sidebar */}
+        <div className="w-64 bg-white border-r border-gray-200 min-h-screen">
+          <div className="p-4">
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">Dashboard</h2>
+            <nav className="space-y-2">
+              {sidebarItems.map((item) => {
+                const Icon = item.icon;
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => setActiveTab(item.id)}
+                    className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-left transition-colors ${
+                      activeTab === item.id
+                        ? 'bg-yellow-50 text-yellow-700 border border-yellow-200'
+                        : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
+                    }`}
+                  >
+                    <Icon className="w-5 h-5" />
+                    <span className="font-medium">{item.label}</span>
+                  </button>
+                );
+              })}
+            </nav>
+          </div>
+          
+          {/* Bottom section */}
+          <div className="absolute bottom-4 left-4 right-4">
+            <div className="bg-gradient-to-r from-yellow-400 to-yellow-600 p-4 rounded-lg text-white">
+              <div className="flex items-center space-x-2 mb-2">
+                <DollarSign className="w-5 h-5" />
+                <span className="font-semibold">Earnings</span>
+              </div>
+              <p className="text-lg font-bold">$1,247.50</p>
+              <p className="text-xs opacity-90">This month</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Main Content */}
+        <div className="flex-1 p-6">
+          <div className="max-w-7xl mx-auto">
+            {/* Welcome message */}
+            <div className="mb-6">
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                Welcome back, {user.name}!
+              </h2>
+              <p className="text-gray-600">
+                {activeTab === 'calendar' && 'Manage your schedule and upcoming events'}
+                {activeTab === 'messages' && 'Check your messages and communications'}
+                {activeTab === 'academy' && 'Learn new skills and improve your hosting'}
+                {activeTab === 'tasks' && 'Complete tasks to earn rewards and bonuses'}
+                {activeTab === 'rewards' && 'View your rewards and redemption options'}
+                {activeTab === 'auditions' && 'Manage audition submissions and reviews'}
+                {activeTab === 'announcements' && 'Stay updated with the latest news'}
+                {activeTab === 'quota' && 'Track your beans and quota performance'}
+                {activeTab === 'pk' && 'Sign up for PK battles and competitions'}
+                {activeTab === 'ai-coach' && 'Get personalized coaching from our AI'}
+                {activeTab === 'users' && 'Manage platform users and permissions'}
+                {activeTab === 'leads' && 'Track and manage potential host leads'}
+                {activeTab === 'admin-agent' && 'Administrative tools and automation'}
+                {activeTab === 'content' && 'Manage content and platform resources'}
+              </p>
+            </div>
+
+            {/* Active Panel */}
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+              <ActiveComponent />
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
