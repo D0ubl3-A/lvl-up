@@ -1005,7 +1005,6 @@ async def tts_speak(req: TTSRequest, current_user: User = Depends(get_current_us
                     raise HTTPException(status_code=500, detail=f"Groq TTS error: {detail}")
                 
                 # Create audio directory if it doesn't exist
-                import os
                 os.makedirs("/app/static/audio", exist_ok=True)
                 
                 # Save to persistent storage with unique ID
