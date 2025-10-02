@@ -63,3 +63,60 @@ import {
 
 // UI components
 import { Button } from './components/ui/button';
+
+// Dashboard components
+import AcademyPanel from './components/dashboard/AcademyPanel';
+import AdminAgentPanel from './components/dashboard/AdminAgentPanel';
+import AICoachPanel from './components/dashboard/AICoachPanel';
+import AnnouncementsPanel from './components/dashboard/AnnouncementsPanel';
+import AuditionsPanel from './components/dashboard/AuditionsPanel';
+import CalendarPanel from './components/dashboard/CalendarPanel';
+import ContentManagerPanel from './components/dashboard/ContentManagerPanel';
+import LeadsPanel from './components/dashboard/LeadsPanel';
+import MessagesPanel from './components/dashboard/MessagesPanel';
+import PKPanel from './components/dashboard/PKPanel';
+import QuotaPanel from './components/dashboard/QuotaPanel';
+import RewardsPanel from './components/dashboard/RewardsPanel';
+import TasksPanel from './components/dashboard/TasksPanel';
+import UsersPanel from './components/dashboard/UsersPanel';
+
+function App() {
+  return (
+    <BrowserRouter>
+      <div className="App">
+        <Routes>
+          <Route path="/" element={<Navigate to="/dashboard" />} />
+          <Route path="/dashboard" element={<Dashboard />} />
+          {/* Add other routes as needed */}
+        </Routes>
+        <Toaster />
+      </div>
+    </BrowserRouter>
+  );
+}
+
+function Dashboard() {
+  return (
+    <div className="container mx-auto p-4">
+      <h1 className="text-2xl font-bold mb-6">Dashboard</h1>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <AcademyPanel />
+        <AdminAgentPanel />
+        <AICoachPanel />
+        <AnnouncementsPanel />
+        <AuditionsPanel />
+        <CalendarPanel />
+        <ContentManagerPanel />
+        <LeadsPanel />
+        <MessagesPanel />
+        <PKPanel />
+        <QuotaPanel />
+        <RewardsPanel />
+        <TasksPanel />
+        <UsersPanel />
+      </div>
+    </div>
+  );
+}
+
+export default App;
