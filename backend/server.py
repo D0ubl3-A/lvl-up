@@ -911,13 +911,15 @@ async def tts_voices():
 
 @api_router.post("/tts/speak")
 async def tts_speak(req: TTSRequest, current_user: User = Depends(get_current_user)):
-    # Implement Groq TTS speech endpoint per docs: https://api.groq.com/openai/v1/audio/speech
+    # Implement Groq TTS speech endpoint with proper file handling
     text = (req.text or '').strip()
     if not text:
         raise HTTPException(status_code=400, detail="Text required")
+    
     model = 'playai-tts'  # English
     voice = req.voice or 'Fritz-PlayAI'
     resp_format = req.format or 'wav'
+    
     try:
         import aiohttp
         headers = {
@@ -930,23 +932,39 @@ async def tts_speak(req: TTSRequest, current_user: User = Depends(get_current_us
             'input': text,
             'response_format': resp_format
         }
+        
         async with aiohttp.ClientSession() as session:
-            async with session.post('https://api.groq.com/openai/v1/audio/speech', headers=headers, json=payload) as r:
+            async with session.post('https://api.groq.com/openai/v1/audio/speech', 
+                                   headers=headers, json=payload) as r:
                 if r.status != 200:
                     detail = await r.text()
                     raise HTTPException(status_code=500, detail=f"Groq TTS error: {detail}")
-                # stream audio to temp file and return a file URL path
+                
+                # Create audio directory if it doesn't exist
+                import os
+                os.makedirs("/app/static/audio", exist_ok=True)
+                
+                # Save to persistent storage with unique ID
                 data = await r.read()
-                fname = f"tts_{uuid.uuid4()}.wav"
-                fpath = f"/tmp/{fname}"
+                audio_id = str(uuid.uuid4())
+                fname = f"tts_{audio_id}.wav"
+                fpath = f"/app/static/audio/{fname}"
+                
                 with open(fpath, 'wb') as f:
                     f.write(data)
-        # Expose via temporary file endpoint
-        # Option A: return as base64
-        import base64
-        with open(fpath, 'rb') as f:
-            b64 = base64.b64encode(f.read()).decode('utf-8')
-        return {"audio_base64": b64, "mime": "audio/wav"}
+                
+                # Return both URL and base64 for compatibility
+                import base64
+                b64 = base64.b64encode(data).decode('utf-8')
+                
+                return {
+                    "audio_url": f"/api/audio/{fname}",
+                    "audio_base64": b64,
+                    "mime": "audio/wav",
+                    "voice_used": voice,
+                    "text": text,
+                    "duration_estimated": len(text) * 0.1
+                }
     except HTTPException:
         raise
     except Exception as e:
