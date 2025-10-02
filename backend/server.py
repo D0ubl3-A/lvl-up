@@ -705,7 +705,6 @@ async def generate_voice_response(text: str, voice_type: str = "strategy_coach")
                     os.makedirs("/app/static/audio", exist_ok=True)
                     
                     # Generate unique filename
-                    import uuid
                     audio_id = str(uuid.uuid4())
                     fpath = f"/app/static/audio/voice_{audio_id}.wav"
                     
