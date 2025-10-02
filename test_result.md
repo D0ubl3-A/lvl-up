@@ -47,15 +47,18 @@
         comment: "VERIFIED: Email integration implemented correctly. send_email() function handles missing SMTP configuration gracefully by printing instead of failing (returns True to avoid breaking workflow). Recruitment search endpoint works and returns proper structure. Email integration won't break the application when SMTP is not configured."
   - task: "Real voice response generation with actual audio URLs"
     implemented: true
-    working: false
+    working: true
     file: "/app/backend/server.py"
     stuck_count: 0
     priority: "medium"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: false
         agent: "main"
         comment: "Converted voice response generation from placeholder to real implementation. Now uses Groq TTS API to generate actual audio files, maps voice types to appropriate voices, returns real audio URLs instead of null."
+      - working: true
+        agent: "testing"
+        comment: "VERIFIED: Voice response generation working perfectly. Fixed import issues in generate_voice_response() function. POST /api/voice/generate now returns actual audio URLs instead of null. AI generates text response using Groq, then converts to speech using appropriate voice mapping (strategy_coach->Atlas-PlayAI, admin->Fritz-PlayAI, etc.). Audio files saved to /app/static/audio/ and served via /api/audio/ endpoint."
 
 ## frontend:
   - task: "Admin login tab added in Auth page"
