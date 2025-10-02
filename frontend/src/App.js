@@ -247,7 +247,7 @@ function App() {
 
 function Dashboard() {
   const [activeTab, setActiveTab] = useState('calendar');
-  const [user, setUser] = useState({ name: 'User', role: 'host' }); // Mock user data
+  const { user, logout } = useAuth();
 
   // Define sidebar navigation items
   const sidebarItems = [
