@@ -3,56 +3,50 @@
 ## user_problem_statement: Polish the app by converting all mock functions to real implementations and updating frontend accordingly. Implement real TTS/STT with Groq, fix email integration, and ensure all placeholder functions are working with actual APIs.
 
 ## backend:
-  - task: "Admin seeding + Admin login with default credentials"
+  - task: "Real TTS implementation with Groq API and file serving"
     implemented: true
-    working: true
+    working: false
     file: "/app/backend/server.py"
     stuck_count: 0
     priority: "high"
-    needs_retesting: false
+    needs_retesting: true
     status_history:
-      - working: true
+      - working: false
         agent: "main"
-        comment: "Added startup hook to seed Admin (Admin/admin333/admin@lvlup.com)."
-      - working: true
-        agent: "testing"
-        comment: "VERIFIED: Admin login successful with BIGO ID 'Admin' and password 'admin333'. Returns 200 status with admin role confirmed. Admin seeding working correctly on startup."
-  - task: "Groq TTS endpoints (voices list + speak placeholder)"
+        comment: "Converted TTS from placeholder to real Groq API implementation. Added proper file storage in /app/static/audio/ and audio serving endpoint /api/audio/{filename}. Now generates actual audio files and returns both audio_url and base64 for compatibility."
+  - task: "Real STT implementation with Groq Whisper API"
     implemented: true
-    working: true
+    working: false
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: false
+        agent: "main"
+        comment: "Converted STT from placeholder to real Groq Whisper implementation. Uses whisper-large-v3 model, supports multiple audio formats (webm, wav, mp3, m4a), returns actual transcription with confidence, language, and duration. Added STT logging to database."
+  - task: "Real email integration for influencer outreach"
+    implemented: true
+    working: false
     file: "/app/backend/server.py"
     stuck_count: 0
     priority: "medium"
-    needs_retesting: false
+    needs_retesting: true
     status_history:
-      - working: true
+      - working: false
         agent: "main"
-        comment: "Added /api/tts/voices and /api/tts/speak (returns text now, audio_url None placeholder)."
-      - working: true
-        agent: "testing"
-        comment: "VERIFIED: TTS endpoints working correctly. GET /api/tts/voices returns 5 voices (Fritz-PlayAI, Arista-PlayAI, etc.). POST /api/tts/speak returns 200 with audio_url=null as expected (placeholder implementation)."
-  - task: "Audition auth-only flow (init/chunk/complete + admin functions)"
+        comment: "Converted email TODO to real SMTP implementation. Added configurable SMTP settings via environment variables. Email function supports both text and HTML, gracefully handles missing config by logging instead of failing. Updates lead status based on email success."
+  - task: "Real voice response generation with actual audio URLs"
     implemented: true
-    working: true
+    working: false
     file: "/app/backend/server.py"
     stuck_count: 0
-    priority: "high"
-    needs_retesting: false
+    priority: "medium"
+    needs_retesting: true
     status_history:
-      - working: true
-        agent: "testing"
-        comment: "VERIFIED: Complete audition auth-only workflow functional. Host registration/login works, POST /api/audition/upload/init returns upload_id+submission_id, chunk uploads successful, completion updates submission status to 'submitted' with video_url. Admin functions: list auditions includes submission, video streaming returns 200, deletion works. Public endpoints correctly return 401. Fixed syntax error in upload complete function."
-  - task: "Demo host creation via API"
-    implemented: true
-    working: true
-    file: "/app/backend/server.py"
-    stuck_count: 0
-    priority: "high"
-    needs_retesting: false
-    status_history:
-      - working: true
-        agent: "testing"
-        comment: "VERIFIED: Demo host creation successful. Generated unique BIGO ID 'demo_host_005233', registered with password 'host123' and email 'demo_host_005233@lvlup.com'. POST /api/auth/register returned 200 status with access_token and user.role='host' confirmed. All verification criteria met."
+      - working: false
+        agent: "main"
+        comment: "Converted voice response generation from placeholder to real implementation. Now uses Groq TTS API to generate actual audio files, maps voice types to appropriate voices, returns real audio URLs instead of null."
 
 ## frontend:
   - task: "Admin login tab added in Auth page"
