@@ -83,6 +83,9 @@ import RewardsPanel from './components/dashboard/RewardsPanel';
 import TasksPanel from './components/dashboard/TasksPanel';
 import UsersPanel from './components/dashboard/UsersPanel';
 
+// Customer components
+import LandingCustomer from './components/LandingCustomer';
+
 // Add auth context
 const AuthContext = React.createContext();
 
@@ -119,6 +122,12 @@ function AuthProvider({ children }) {
       setToken(access_token);
       setUser(u);
       toast('Welcome back!');
+      // Redirect based on role
+      if (u.role === 'customer') {
+        window.location.href = '/profile';
+      } else {
+        window.location.href = '/dashboard';
+      }
       return true;
     } catch (e) {
       toast('Login failed');
@@ -233,11 +242,6 @@ function App() {
             <Route path="/login" element={<LoginPage />} />
             <Route path="/" element={<Navigate to="/dashboard" />} />
             <Route path="/dashboard" element={
-              <ProtectedRoute>
-                <Dashboard />
-              </ProtectedRoute>
-            } />
-          </Routes>
           <Toaster />
         </div>
       </BrowserRouter>
