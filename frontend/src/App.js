@@ -242,6 +242,16 @@ function App() {
             <Route path="/login" element={<LoginPage />} />
             <Route path="/" element={<Navigate to="/dashboard" />} />
             <Route path="/dashboard" element={
+              <ProtectedRoute>
+                <Dashboard />
+              </ProtectedRoute>
+            } />
+            <Route path="/profile" element={
+              <ProtectedRoute>
+                <LandingCustomer />
+              </ProtectedRoute>
+            } />
+          </Routes>
           <Toaster />
         </div>
       </BrowserRouter>
