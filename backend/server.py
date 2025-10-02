@@ -702,7 +702,6 @@ async def generate_voice_response(text: str, voice_type: str = "strategy_coach")
                                    headers=headers, json=payload) as r:
                 if r.status == 200:
                     # Create audio directory if it doesn't exist
-                    import os
                     os.makedirs("/app/static/audio", exist_ok=True)
                     
                     # Generate unique filename
