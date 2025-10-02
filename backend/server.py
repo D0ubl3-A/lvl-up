@@ -1685,14 +1685,24 @@ async def send_outreach_emails(outreach_data: dict, current_user: User = Depends
             if custom_message:
                 email_content = f"{custom_message}\n\n{email_content}"
             
-            # TODO: Integrate actual email sender later (SendGrid/SMTP)
+            # Send actual email
+            email_success = await send_email(
+                to_email=lead.get("email"),
+                subject="Partnership Opportunity with LVL UP Gaming",
+                body=email_content,
+                lead_name=lead.get("name", "Creator")
+            )
+            
+            # Update lead status based on email success
+            status = "contacted" if email_success else "email_failed"
             await db.influencer_leads.update_one(
                 {"id": lead_id},
                 {
                     "$set": {
-                        "status": "contacted",
+                        "status": status,
                         "last_contacted": datetime.now(timezone.utc),
-                        "contact_attempts": lead.get("contact_attempts", 0) + 1
+                        "contact_attempts": lead.get("contact_attempts", 0) + 1,
+                        "email_sent": email_success
                     }
                 }
             )
