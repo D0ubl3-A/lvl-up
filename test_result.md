@@ -98,7 +98,7 @@
 
 ## test_plan:
   current_focus:
-    - "Real functions testing completed - all TTS/STT/Voice/Email implementations verified"
+    - "Sidebar dashboard layout testing completed - all requirements verified"
   stuck_tasks:
     - "None"
   test_all: false
