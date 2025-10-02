@@ -16,5 +16,50 @@ function sanitizeAgentHtml(html) {
     div.querySelectorAll('table').forEach(t => {
       t.classList.add('min-w-full','text-left','text-sm');
     });
-    
-    
+    div.querySelectorAll('th').forEach(th => {
+      th.classList.add('font-semibold','p-2','border-b');
+    });
+    div.querySelectorAll('td').forEach(td => {
+      td.classList.add('p-2','border-b');
+    });
+    return div.innerHTML;
+  } catch (e) {
+    return html;
+  }
+}
+
+// Icons
+import {
+  Crown,
+  Trophy,
+  Users,
+  Calendar as CalendarIcon,
+  Bell,
+  Settings,
+  CheckCircle,
+  Gift,
+  MessageSquare,
+  Home,
+  BookOpen,
+  Target,
+  FileText,
+  Bot,
+  DollarSign,
+  BarChart3,
+  Camera,
+  Upload,
+  StopCircle,
+  PlayCircle,
+  X,
+  Lock,
+  Search,
+  Users2,
+  Command,
+  Calculator,
+  Video,
+  Phone,
+  Clock,
+} from 'lucide-react';
+
+// UI components
+import { Button } from './components/ui/button';
