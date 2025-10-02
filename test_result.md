@@ -1,6 +1,6 @@
 #====================================================================================================
 
-## user_problem_statement: Ensure full platform stability after recent changes (auth-only auditions, admin seeding/login, dark landing, images spread, greeting agent bubble). Run backend first, then frontend tests to verify main flows.
+## user_problem_statement: Polish the app by converting all mock functions to real implementations and updating frontend accordingly. Implement real TTS/STT with Groq, fix email integration, and ensure all placeholder functions are working with actual APIs.
 
 ## backend:
   - task: "Admin seeding + Admin login with default credentials"
