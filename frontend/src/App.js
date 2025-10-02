@@ -294,12 +294,17 @@ function Dashboard() {
               {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
             </Badge>
             <div className="text-right">
-              <p className="text-sm font-semibold text-gray-900">{user.name}</p>
+              <p className="text-sm font-semibold text-gray-900">{user?.name}</p>
               <p className="text-xs text-gray-500">Welcome back!</p>
             </div>
-            <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center">
-              <Settings className="w-4 h-4 text-gray-600" />
-            </div>
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={logout}
+              className="text-gray-600 hover:text-gray-900"
+            >
+              Logout
+            </Button>
           </div>
         </div>
       </header>
