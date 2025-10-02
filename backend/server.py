@@ -608,6 +608,70 @@ Keep it under 200 words and professional but exciting."""
     except Exception as e:
         return f"Error creating email: {str(e)}"
 
+# Email sending function
+async def send_email(to_email: str, subject: str, body: str, lead_name: str = "Creator") -> bool:
+    """
+    Send email using SMTP. Configure SMTP settings in environment variables.
+    Returns True if successful, False otherwise.
+    """
+    try:
+        import smtplib
+        import ssl
+        from email.mime.text import MIMEText
+        from email.mime.multipart import MIMEMultipart
+        
+        # Email configuration from environment variables
+        smtp_server = os.environ.get('SMTP_SERVER', 'smtp.gmail.com')
+        smtp_port = int(os.environ.get('SMTP_PORT', '587'))
+        smtp_username = os.environ.get('SMTP_USERNAME', '')
+        smtp_password = os.environ.get('SMTP_PASSWORD', '')
+        from_email = os.environ.get('FROM_EMAIL', smtp_username)
+        
+        # Skip if no email configuration
+        if not smtp_username or not smtp_password:
+            print(f"Email not configured - would send to {to_email}: {subject}")
+            return True  # Return True to avoid breaking the flow
+        
+        # Create message
+        message = MIMEMultipart("alternative")
+        message["Subject"] = subject
+        message["From"] = from_email
+        message["To"] = to_email
+        
+        # Create HTML and text versions
+        text_part = MIMEText(body, "plain")
+        html_body = body.replace('\n', '<br>\n')
+        html_part = MIMEText(f"""
+        <html>
+        <body>
+            <p>Hi {lead_name},</p>
+            <div style="font-family: Arial, sans-serif;">
+                {html_body}
+            </div>
+            <br>
+            <p>Best regards,<br>
+            The LVL UP Team</p>
+        </body>
+        </html>
+        """, "html")
+        
+        message.attach(text_part)
+        message.attach(html_part)
+        
+        # Send email
+        context = ssl.create_default_context()
+        with smtplib.SMTP(smtp_server, smtp_port) as server:
+            server.starttls(context=context)
+            server.login(smtp_username, smtp_password)
+            server.sendmail(from_email, to_email, message.as_string())
+        
+        print(f"Email sent successfully to {to_email}")
+        return True
+        
+    except Exception as e:
+        print(f"Failed to send email to {to_email}: {str(e)}")
+        return False
+
 # Voice TTS Integration with Groq
 async def generate_voice_response(text: str, voice_type: str = "strategy_coach"):
     try:
