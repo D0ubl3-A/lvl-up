@@ -98,7 +98,7 @@
 
 ## test_plan:
   current_focus:
-    - "Frontend: Landing visuals (dark theme, logo, images), auth gating for audition, Admin tab presence"
+    - "Real functions testing completed - all TTS/STT/Voice/Email implementations verified"
   stuck_tasks:
     - "None"
   test_all: false
