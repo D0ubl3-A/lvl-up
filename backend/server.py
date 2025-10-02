@@ -1348,18 +1348,78 @@ async def generate_voice(voice_request: VoiceRequest, current_user: User = Depen
         "voice_result": voice_result
     }
 
-# STT endpoint (Whisper-like processing)
+# STT endpoint with real Groq Whisper integration
 @api_router.post("/stt")
 async def stt_transcribe(file: UploadFile = File(...), current_user: User = Depends(get_current_user)):
-    # Accept audio/webm or audio/wav and return dummy transcription for now
-    if file.content_type not in ("audio/webm", "audio/wav", "audio/x-wav"):
-        raise HTTPException(status_code=400, detail="Unsupported audio format")
-    # For production, integrate real Whisper transcription here. Placeholder returns fixed string.
+    # Accept various audio formats
+    supported_types = ["audio/webm", "audio/wav", "audio/x-wav", "audio/mp3", "audio/mpeg", "audio/m4a"]
+    if file.content_type not in supported_types:
+        raise HTTPException(status_code=400, detail=f"Unsupported audio format. Supported: {', '.join(supported_types)}")
+    
     content = await file.read()
     if not content:
-        raise HTTPException(status_code=400, detail="Empty audio")
-    # Return placeholder transcription
-    return {"transcription": "This is a placeholder transcription. Audio received successfully."}
+        raise HTTPException(status_code=400, detail="Empty audio file")
+    
+    try:
+        # Use Groq Whisper API for transcription
+        import aiohttp
+        import tempfile
+        import os
+        
+        # Save the uploaded file to a temporary location
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as temp_file:
+            temp_file.write(content)
+            temp_path = temp_file.name
+        
+        # Prepare the multipart form data
+        data = aiohttp.FormData()
+        data.add_field('file', 
+                      open(temp_path, 'rb'),
+                      filename=file.filename or 'audio.wav',
+                      content_type=file.content_type)
+        data.add_field('model', 'whisper-large-v3')
+        
+        headers = {
+            'Authorization': f'Bearer {os.environ.get("GROQ_API_KEY", "")}'
+        }
+        
+        async with aiohttp.ClientSession() as session:
+            async with session.post('https://api.groq.com/openai/v1/audio/transcriptions',
+                                   headers=headers, data=data) as r:
+                
+                # Clean up temp file
+                os.unlink(temp_path)
+                
+                if r.status != 200:
+                    error_text = await r.text()
+                    raise HTTPException(status_code=500, detail=f"Groq STT error: {error_text}")
+                
+                result = await r.json()
+                transcription = result.get('text', '').strip()
+                
+                # Log the transcription to database for analytics
+                try:
+                    await db.stt_logs.insert_one({
+                        "user_id": current_user.id,
+                        "transcription": transcription,
+                        "file_size": len(content),
+                        "content_type": file.content_type,
+                        "created_at": datetime.now(timezone.utc)
+                    })
+                except Exception:
+                    pass  # Don't fail if logging fails
+                
+                return {
+                    "transcription": transcription,
+                    "confidence": result.get('confidence', None),
+                    "language": result.get('language', 'en'),
+                    "duration": result.get('duration', None)
+                }
+                
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Transcription failed: {str(e)}")
 
 # ===== Quizzes Models =====
 class QuizQuestion(BaseModel):
