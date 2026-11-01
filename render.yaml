@@ -1,0 +1,34 @@
+services:
+  - type: web
+    name: lvl-up-api
+    runtime: docker
+    plan: starter
+    region: ohio
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /docs
+    autoDeploy: true
+    disk:
+      name: lvl-up-audio
+      mountPath: /var/data
+      sizeGB: 1
+    envVars:
+      - key: DB_NAME
+        value: lvl_up
+      - key: AUDIO_STORAGE_DIR
+        value: /var/data/audio
+      - key: JWT_SECRET
+        generateValue: true
+      - key: MONGO_URL
+        sync: false
+      - key: GROQ_API_KEY
+        sync: false
+      - key: CORS_ORIGINS
+        sync: false
+      - key: INITIAL_ADMIN_BIGO_ID
+        value: Admin
+      - key: INITIAL_ADMIN_EMAIL
+        value: admin@lvlup.ca
+      - key: INITIAL_ADMIN_NAME
+        value: admin
+      - key: INITIAL_ADMIN_PASSWORD
+        sync: false
