@@ -26,6 +26,8 @@ from contextlib import asynccontextmanager
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
+AUDIO_STORAGE_DIR = Path(os.environ.get("AUDIO_STORAGE_DIR", str(ROOT_DIR.parent / "static" / "audio")))
+AUDIO_STORAGE_DIR.mkdir(parents=True, exist_ok=True)
 
 # MongoDB connection
 mongo_url = os.environ['MONGO_URL']
@@ -36,14 +38,22 @@ db = client[os.environ['DB_NAME']]
 async def lifespan(app: FastAPI):
     # startup code
     try:
-        admin = await db.users.find_one({"bigo_id": "Admin"})
-        if not admin:
-            hashed = hash_password("admin333")
-            user = User(bigo_id="Admin", email="admin@lvlup.ca", name="admin", role=UserRole.ADMIN)
+        admin_id = os.environ.get("INITIAL_ADMIN_BIGO_ID", "Admin")
+        admin_password = os.environ.get("INITIAL_ADMIN_PASSWORD")
+        if admin_password and not await db.users.find_one({"bigo_id": admin_id}):
+            hashed = hash_password(admin_password)
+            user = User(
+                bigo_id=admin_id,
+                email=os.environ.get("INITIAL_ADMIN_EMAIL", "admin@lvlup.ca"),
+                name=os.environ.get("INITIAL_ADMIN_NAME", "admin"),
+                role=UserRole.ADMIN,
+            )
             doc = user.dict()
             doc["password"] = hashed
             await db.users.insert_one(doc)
-            logging.getLogger(__name__).info("Seeded default Admin user")
+            logging.getLogger(__name__).info("Seeded initial admin from environment configuration")
+        elif not admin_password:
+            logging.getLogger(__name__).warning("INITIAL_ADMIN_PASSWORD is unset; no initial admin account was seeded")
     except Exception as e:
         logging.getLogger(__name__).error(f"Failed to seed admin: {e}")
     yield
@@ -64,7 +74,7 @@ api_router = APIRouter(prefix="/api")
 # Security
 security = HTTPBearer()
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-SECRET_KEY = os.environ.get("JWT_SECRET", "levelup-bigo-hosts-secret-2025")
+SECRET_KEY = os.environ["JWT_SECRET"]
 ALGORITHM = "HS256"
 
 # Groq AI Setup
@@ -702,11 +712,11 @@ async def generate_voice_response(text: str, voice_type: str = "strategy_coach")
                                    headers=headers, json=payload) as r:
                 if r.status == 200:
                     # Create audio directory if it doesn't exist
-                    os.makedirs("/app/static/audio", exist_ok=True)
+                    AUDIO_STORAGE_DIR.mkdir(parents=True, exist_ok=True)
                     
                     # Generate unique filename
                     audio_id = str(uuid.uuid4())
-                    fpath = f"/app/static/audio/voice_{audio_id}.wav"
+                    fpath = str(AUDIO_STORAGE_DIR / f"voice_{audio_id}.wav")
                     
                     # Save audio file
                     data = await r.read()
@@ -1003,13 +1013,13 @@ async def tts_speak(req: TTSRequest, current_user: User = Depends(get_current_us
                     raise HTTPException(status_code=500, detail=f"Groq TTS error: {detail}")
                 
                 # Create audio directory if it doesn't exist
-                os.makedirs("/app/static/audio", exist_ok=True)
+                AUDIO_STORAGE_DIR.mkdir(parents=True, exist_ok=True)
                 
                 # Save to persistent storage with unique ID
                 data = await r.read()
                 audio_id = str(uuid.uuid4())
                 fname = f"tts_{audio_id}.wav"
-                fpath = f"/app/static/audio/{fname}"
+                fpath = str(AUDIO_STORAGE_DIR / fname)
                 
                 with open(fpath, 'wb') as f:
                     f.write(data)
@@ -1042,7 +1052,7 @@ async def serve_audio_file(filename: str):
     if not filename.endswith('.wav') or '..' in filename or '/' in filename:
         raise HTTPException(status_code=400, detail="Invalid filename")
     
-    filepath = Path(f"/app/static/audio/{filename}")
+    filepath = AUDIO_STORAGE_DIR / filename
     
     if not filepath.exists():
         raise HTTPException(status_code=404, detail="Audio file not found")
