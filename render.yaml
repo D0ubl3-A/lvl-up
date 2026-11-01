@@ -2,20 +2,16 @@ services:
   - type: web
     name: lvl-up-api
     runtime: docker
-    plan: starter
+    plan: free
     region: ohio
     dockerfilePath: ./Dockerfile
     healthCheckPath: /docs
     autoDeploy: true
-    disk:
-      name: lvl-up-audio
-      mountPath: /var/data
-      sizeGB: 1
     envVars:
       - key: DB_NAME
         value: lvl_up
-      - key: AUDIO_STORAGE_DIR
-        value: /var/data/audio
+      - key: AUDIO_STORAGE_BACKEND
+        value: mongodb
       - key: JWT_SECRET
         generateValue: true
       - key: MONGO_URL
