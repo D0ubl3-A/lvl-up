@@ -11,7 +11,7 @@ This repository includes a Render Blueprint and Dockerfile for the API. Deploy t
 - `CORS_ORIGINS`: the exact HTTPS origin of the published Sites frontend, with no path or trailing slash.
 - `INITIAL_ADMIN_PASSWORD`: a unique initial admin password. The API seeds the configured initial admin only when this value is present and that user does not already exist.
 
-Render generates `JWT_SECRET`. The Blueprint mounts a persistent disk at `/var/data`; TTS audio is written under `/var/data/audio` through `AUDIO_STORAGE_DIR`. The persistent disk requires a paid Render service plan.
+Render generates `JWT_SECRET`. TTS audio is stored in MongoDB GridFS (`audio.files` and `audio.chunks`) through `AUDIO_STORAGE_BACKEND=mongodb`, so audio survives API restarts without a container disk. This increases production database storage usage.
 
 After the backend is live, verify its `/docs` health page and `/api/public/stats`. The latter must return database-backed data before connecting the frontend.
 
