@@ -1,10 +1,10 @@
 from fastapi import FastAPI, APIRouter, HTTPException, Depends, Query, UploadFile, File
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.responses import StreamingResponse, JSONResponse
-from fastapi.responses import StreamingResponse, JSONResponse, FileResponse
+from fastapi.responses import StreamingResponse, JSONResponse, FileResponse, Response
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
-from motor.motor_asyncio import AsyncIOMotorClient
+from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorGridFSBucket
 import os
 import logging
 from pathlib import Path
@@ -26,13 +26,49 @@ from contextlib import asynccontextmanager
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
+AUDIO_STORAGE_BACKEND = os.environ.get("AUDIO_STORAGE_BACKEND", "filesystem").lower()
 AUDIO_STORAGE_DIR = Path(os.environ.get("AUDIO_STORAGE_DIR", str(ROOT_DIR.parent / "static" / "audio")))
-AUDIO_STORAGE_DIR.mkdir(parents=True, exist_ok=True)
+if AUDIO_STORAGE_BACKEND == "filesystem":
+    AUDIO_STORAGE_DIR.mkdir(parents=True, exist_ok=True)
 
 # MongoDB connection
 mongo_url = os.environ['MONGO_URL']
 client = AsyncIOMotorClient(mongo_url)
 db = client[os.environ['DB_NAME']]
+audio_bucket = AsyncIOMotorGridFSBucket(db, bucket_name="audio")
+
+async def store_audio_file(filename: str, data: bytes) -> None:
+    """Persist generated audio in MongoDB GridFS or the configured local directory."""
+    if AUDIO_STORAGE_BACKEND == "mongodb":
+        upload = audio_bucket.open_upload_stream(
+            filename,
+            metadata={"contentType": "audio/wav"},
+        )
+        await upload.write(data)
+        await upload.close()
+        return
+
+    AUDIO_STORAGE_DIR.mkdir(parents=True, exist_ok=True)
+    async with aiofiles.open(AUDIO_STORAGE_DIR / filename, "wb") as audio_file:
+        await audio_file.write(data)
+
+async def load_audio_file(filename: str) -> bytes:
+    """Read generated audio from the selected durable or local storage backend."""
+    if AUDIO_STORAGE_BACKEND == "mongodb":
+        try:
+            download = await audio_bucket.open_download_stream_by_name(filename)
+        except Exception as exc:
+            from gridfs.errors import NoFile
+            if isinstance(exc, NoFile):
+                raise HTTPException(status_code=404, detail="Audio file not found") from exc
+            raise
+        return await download.read()
+
+    filepath = AUDIO_STORAGE_DIR / filename
+    if not filepath.exists():
+        raise HTTPException(status_code=404, detail="Audio file not found")
+    async with aiofiles.open(filepath, "rb") as audio_file:
+        return await audio_file.read()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -711,20 +747,11 @@ async def generate_voice_response(text: str, voice_type: str = "strategy_coach")
             async with session.post('https://api.groq.com/openai/v1/audio/speech', 
                                    headers=headers, json=payload) as r:
                 if r.status == 200:
-                    # Create audio directory if it doesn't exist
-                    AUDIO_STORAGE_DIR.mkdir(parents=True, exist_ok=True)
-                    
-                    # Generate unique filename
                     audio_id = str(uuid.uuid4())
-                    fpath = str(AUDIO_STORAGE_DIR / f"voice_{audio_id}.wav")
-                    
-                    # Save audio file
+                    filename = f"voice_{audio_id}.wav"
                     data = await r.read()
-                    with open(fpath, 'wb') as f:
-                        f.write(data)
-                    
-                    # Return proper audio URL that can be accessed by frontend
-                    audio_url = f"/api/audio/voice_{audio_id}.wav"
+                    await store_audio_file(filename, data)
+                    audio_url = f"/api/audio/{filename}"
                     
                     return {
                         "audio_url": audio_url,
@@ -1012,17 +1039,10 @@ async def tts_speak(req: TTSRequest, current_user: User = Depends(get_current_us
                     detail = await r.text()
                     raise HTTPException(status_code=500, detail=f"Groq TTS error: {detail}")
                 
-                # Create audio directory if it doesn't exist
-                AUDIO_STORAGE_DIR.mkdir(parents=True, exist_ok=True)
-                
-                # Save to persistent storage with unique ID
                 data = await r.read()
                 audio_id = str(uuid.uuid4())
                 fname = f"tts_{audio_id}.wav"
-                fpath = str(AUDIO_STORAGE_DIR / fname)
-                
-                with open(fpath, 'wb') as f:
-                    f.write(data)
+                await store_audio_file(fname, data)
                 
                 # Return both URL and base64 for compatibility
                 import base64
@@ -1052,16 +1072,18 @@ async def serve_audio_file(filename: str):
     if not filename.endswith('.wav') or '..' in filename or '/' in filename:
         raise HTTPException(status_code=400, detail="Invalid filename")
     
+    if AUDIO_STORAGE_BACKEND == "mongodb":
+        audio_data = await load_audio_file(filename)
+        return Response(
+            content=audio_data,
+            media_type="audio/wav",
+            headers={"Content-Disposition": f'inline; filename="{filename}"'},
+        )
+
     filepath = AUDIO_STORAGE_DIR / filename
-    
     if not filepath.exists():
         raise HTTPException(status_code=404, detail="Audio file not found")
-    
-    return FileResponse(
-        path=str(filepath),
-        media_type="audio/wav",
-        filename=filename
-    )
+    return FileResponse(path=str(filepath), media_type="audio/wav", filename=filename)
 
 # DEPRECATE old public endpoints (force auth)
 @api_router.post("/public/audition/upload/init")
